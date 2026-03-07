@@ -224,6 +224,7 @@ function loadSkillEntries(
     config?: OpenClawConfig;
     managedSkillsDir?: string;
     bundledSkillsDir?: string;
+    personDir?: string;
   },
 ): SkillEntry[] {
   const limits = resolveSkillsLimits(opts?.config);
@@ -365,9 +366,16 @@ function loadSkillEntries(
     dir: workspaceSkillsDir,
     source: "openclaw-workspace",
   });
+  const personSkillsDir = opts?.personDir ? path.resolve(opts.personDir, "skills") : "";
+  const personSkills = personSkillsDir
+    ? loadSkills({
+        dir: personSkillsDir,
+        source: "openclaw-person",
+      })
+    : [];
 
   const merged = new Map<string, Skill>();
-  // Precedence: extra < bundled < managed < agents-skills-personal < agents-skills-project < workspace
+  // Precedence: extra < bundled < managed < agents-skills-personal < agents-skills-project < workspace < person
   for (const skill of extraSkills) {
     merged.set(skill.name, skill);
   }
@@ -384,6 +392,9 @@ function loadSkillEntries(
     merged.set(skill.name, skill);
   }
   for (const skill of workspaceSkills) {
+    merged.set(skill.name, skill);
+  }
+  for (const skill of personSkills) {
     merged.set(skill.name, skill);
   }
 
@@ -473,6 +484,7 @@ type WorkspaceSkillBuildOptions = {
   config?: OpenClawConfig;
   managedSkillsDir?: string;
   bundledSkillsDir?: string;
+  personDir?: string;
   entries?: SkillEntry[];
   /** If provided, only include skills with these names */
   skillFilter?: string[];
@@ -521,6 +533,7 @@ export function resolveSkillsPromptForRun(params: {
   entries?: SkillEntry[];
   config?: OpenClawConfig;
   workspaceDir: string;
+  personDir?: string;
 }): string {
   const snapshotPrompt = params.skillsSnapshot?.prompt?.trim();
   if (snapshotPrompt) {
@@ -530,6 +543,7 @@ export function resolveSkillsPromptForRun(params: {
     const prompt = buildWorkspaceSkillsPrompt(params.workspaceDir, {
       entries: params.entries,
       config: params.config,
+      personDir: params.personDir,
     });
     return prompt.trim() ? prompt : "";
   }
@@ -542,6 +556,7 @@ export function loadWorkspaceSkillEntries(
     config?: OpenClawConfig;
     managedSkillsDir?: string;
     bundledSkillsDir?: string;
+    personDir?: string;
   },
 ): SkillEntry[] {
   return loadSkillEntries(workspaceDir, opts);

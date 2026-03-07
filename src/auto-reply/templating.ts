@@ -115,6 +115,8 @@ export type MsgContext = {
   GroupSpace?: string;
   GroupMembers?: string;
   GroupSystemPrompt?: string;
+  /** Optional routing/team context used to select an agent team workspace. */
+  TeamId?: string;
   /** Untrusted metadata that must not be treated as system instructions. */
   UntrustedContext?: string[];
   /** Explicit owner allowlist overrides (trusted, configuration-derived). */

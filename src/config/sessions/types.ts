@@ -155,6 +155,8 @@ export type SessionEntry = {
   subject?: string;
   groupChannel?: string;
   space?: string;
+  /** Active team workspace name bound to this session, if any. */
+  teamWorkspace?: string;
   origin?: SessionOrigin;
   deliveryContext?: DeliveryContext;
   lastChannel?: SessionChannelId;

@@ -712,6 +712,20 @@ export const AgentEntrySchema = z
     default: z.boolean().optional(),
     name: z.string().optional(),
     workspace: z.string().optional(),
+    personDir: z.string().optional(),
+    teamWorkspaces: z
+      .record(
+        z.string(),
+        z.union([
+          z.string(),
+          z
+            .object({
+              path: z.string(),
+            })
+            .strict(),
+        ]),
+      )
+      .optional(),
     agentDir: z.string().optional(),
     model: AgentModelSchema.optional(),
     skills: z.array(z.string()).optional(),

@@ -4,6 +4,7 @@ import { loadWorkspaceSkillEntries, type SkillEntry, type SkillSnapshot } from "
 export function resolveEmbeddedRunSkillEntries(params: {
   workspaceDir: string;
   config?: OpenClawConfig;
+  personDir?: string;
   skillsSnapshot?: SkillSnapshot;
 }): {
   shouldLoadSkillEntries: boolean;
@@ -13,7 +14,10 @@ export function resolveEmbeddedRunSkillEntries(params: {
   return {
     shouldLoadSkillEntries,
     skillEntries: shouldLoadSkillEntries
-      ? loadWorkspaceSkillEntries(params.workspaceDir, { config: params.config })
+      ? loadWorkspaceSkillEntries(params.workspaceDir, {
+          config: params.config,
+          personDir: params.personDir,
+        })
       : [],
   };
 }

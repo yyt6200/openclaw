@@ -67,6 +67,7 @@ export async function resolveBootstrapFilesForRun(params: {
   sessionKey?: string;
   sessionId?: string;
   agentId?: string;
+  personDir?: string;
   warn?: (message: string) => void;
   contextMode?: BootstrapContextMode;
   runKind?: BootstrapContextRunKind;
@@ -78,11 +79,22 @@ export async function resolveBootstrapFilesForRun(params: {
         sessionKey: params.sessionKey,
       })
     : await loadWorkspaceBootstrapFiles(params.workspaceDir);
-  const bootstrapFiles = applyContextModeFilter({
+  let bootstrapFiles = applyContextModeFilter({
     files: filterBootstrapFilesForSession(rawFiles, sessionKey),
     contextMode: params.contextMode,
     runKind: params.runKind,
   });
+
+  if (params.personDir?.trim()) {
+    const personFiles = await loadWorkspaceBootstrapFiles(params.personDir);
+    const personMap = new Map(personFiles.map((file) => [file.name, file]));
+    bootstrapFiles = bootstrapFiles.map((file) => personMap.get(file.name) ?? file);
+    for (const personFile of personFiles) {
+      if (!bootstrapFiles.some((file) => file.name === personFile.name)) {
+        bootstrapFiles.push(personFile);
+      }
+    }
+  }
 
   const updated = await applyBootstrapHookOverrides({
     files: bootstrapFiles,
@@ -101,6 +113,7 @@ export async function resolveBootstrapContextForRun(params: {
   sessionKey?: string;
   sessionId?: string;
   agentId?: string;
+  personDir?: string;
   warn?: (message: string) => void;
   contextMode?: BootstrapContextMode;
   runKind?: BootstrapContextRunKind;

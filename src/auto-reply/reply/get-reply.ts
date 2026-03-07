@@ -5,10 +5,12 @@ import {
   resolveAgentSkillsFilter,
 } from "../../agents/agent-scope.js";
 import { resolveModelRefFromString } from "../../agents/model-selection.js";
+import { resolveEffectiveWorkspaceDir } from "../../agents/team-workspaces.js";
 import { resolveAgentTimeoutMs } from "../../agents/timeout.js";
 import { DEFAULT_AGENT_WORKSPACE_DIR, ensureAgentWorkspace } from "../../agents/workspace.js";
 import { resolveChannelModelOverride } from "../../channels/model-overrides.js";
 import { type OpenClawConfig, loadConfig } from "../../config/config.js";
+import { updateSessionStore } from "../../config/sessions.js";
 import { applyLinkUnderstanding } from "../../link-understanding/apply.js";
 import { applyMediaUnderstanding } from "../../media-understanding/apply.js";
 import { defaultRuntime } from "../../runtime.js";
@@ -102,11 +104,6 @@ export async function getReplyFromConfig(
   }
 
   const workspaceDirRaw = resolveAgentWorkspaceDir(cfg, agentId) ?? DEFAULT_AGENT_WORKSPACE_DIR;
-  const workspace = await ensureAgentWorkspace({
-    dir: workspaceDirRaw,
-    ensureBootstrapFiles: !agentCfg?.skipBootstrap && !isFastTestEnv,
-  });
-  const workspaceDir = workspace.dir;
   const agentDir = resolveAgentDir(cfg, agentId);
   const timeoutMs = resolveAgentTimeoutMs({ cfg, overrideSeconds: opts?.timeoutOverrideSeconds });
   const configuredTypingSeconds =
@@ -171,6 +168,56 @@ export async function getReplyFromConfig(
     triggerBodyNormalized,
     bodyStripped,
   } = sessionState;
+
+  const effectiveWorkspace = resolveEffectiveWorkspaceDir({
+    cfg,
+    agentId,
+    fallbackWorkspaceDir: workspaceDirRaw,
+    sessionEntry,
+    routeContext: {
+      channel:
+        groupResolution?.channel ??
+        (typeof finalized.OriginatingChannel === "string"
+          ? finalized.OriginatingChannel
+          : undefined) ??
+        finalized.Provider,
+      accountId: finalized.AccountId,
+      peer:
+        groupResolution?.id && groupResolution?.chatType
+          ? { kind: groupResolution.chatType, id: groupResolution.id }
+          : undefined,
+      parentPeer:
+        finalized.ThreadParentId && finalized.ChatType === "channel"
+          ? { kind: "channel", id: finalized.ThreadParentId }
+          : undefined,
+      guildId:
+        sessionEntry.space ??
+        sessionCtx.GroupSpace ??
+        finalized.GroupSpace ??
+        (groupResolution?.chatType === "channel" ? groupResolution.id : undefined),
+      teamId: finalized.TeamId,
+    },
+  });
+  const workspace = await ensureAgentWorkspace({
+    dir: effectiveWorkspace.workspaceDir,
+    ensureBootstrapFiles: !agentCfg?.skipBootstrap && !isFastTestEnv,
+  });
+  const workspaceDir = workspace.dir;
+  const nextTeamWorkspace =
+    effectiveWorkspace.routedTeamWorkspaceName === null
+      ? undefined
+      : effectiveWorkspace.teamWorkspace?.name;
+  if (sessionEntry && sessionEntry.teamWorkspace !== nextTeamWorkspace) {
+    sessionEntry.teamWorkspace = nextTeamWorkspace;
+    if (sessionKey) {
+      sessionStore[sessionKey] = { ...sessionStore[sessionKey], ...sessionEntry };
+    }
+    if (sessionKey && storePath) {
+      await updateSessionStore(storePath, (store) => {
+        store[sessionKey] = { ...store[sessionKey], ...sessionEntry };
+      });
+    }
+  }
 
   await applyResetModelOverride({
     cfg,

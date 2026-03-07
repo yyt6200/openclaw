@@ -54,6 +54,8 @@ describe("resolveAgentConfig", () => {
     expect(result).toEqual({
       name: "Main Agent",
       workspace: "~/openclaw",
+      personDir: undefined,
+      teamWorkspaces: undefined,
       agentDir: "~/.openclaw/agents/main",
       model: "anthropic/claude-opus-4",
       identity: undefined,
@@ -61,6 +63,30 @@ describe("resolveAgentConfig", () => {
       subagents: undefined,
       sandbox: undefined,
       tools: undefined,
+    });
+  });
+
+  it("returns personDir and teamWorkspaces when configured", () => {
+    const cfg: OpenClawConfig = {
+      agents: {
+        list: [
+          {
+            id: "main",
+            workspace: "~/openclaw",
+            personDir: "~/people/main",
+            teamWorkspaces: {
+              alpha: "~/teams/alpha",
+              beta: { path: "~/teams/beta" },
+            },
+          },
+        ],
+      },
+    };
+    const result = resolveAgentConfig(cfg, "main");
+    expect(result?.personDir).toBe("~/people/main");
+    expect(result?.teamWorkspaces).toEqual({
+      alpha: "~/teams/alpha",
+      beta: { path: "~/teams/beta" },
     });
   });
 

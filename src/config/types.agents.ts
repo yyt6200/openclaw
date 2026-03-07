@@ -40,6 +40,8 @@ export type AgentRouteBinding = {
   type?: "route";
   agentId: string;
   comment?: string;
+  /** Optional team workspace selector for this binding. */
+  teamWorkspace?: string;
   match: AgentBindingMatch;
 };
 
@@ -63,6 +65,10 @@ export type AgentConfig = {
   default?: boolean;
   name?: string;
   workspace?: string;
+  /** Optional persona/home directory for this agent (persona files, private skills). */
+  personDir?: string;
+  /** Optional named team workspaces this agent can serve. */
+  teamWorkspaces?: Record<string, string | { path: string }>;
   agentDir?: string;
   model?: AgentModelConfig;
   /** Optional allowlist of skills for this agent (omit = all skills; empty = none). */

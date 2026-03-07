@@ -1,7 +1,9 @@
 import crypto from "node:crypto";
+import { resolveSessionAgentId } from "../../agents/agent-scope.js";
 import { resolveUserTimezone } from "../../agents/date-time.js";
 import { buildWorkspaceSkillSnapshot } from "../../agents/skills.js";
 import { ensureSkillsWatcher, getSkillsSnapshotVersion } from "../../agents/skills/refresh.js";
+import { resolveAgentPersonDir } from "../../agents/team-workspaces.js";
 import type { OpenClawConfig } from "../../config/config.js";
 import { type SessionEntry, updateSessionStore } from "../../config/sessions.js";
 import { buildChannelSummary } from "../../infra/channel-summary.js";
@@ -157,6 +159,11 @@ export async function ensureSkillSnapshot(params: {
 
   let nextEntry = sessionEntry;
   let systemSent = sessionEntry?.systemSent ?? false;
+  const sessionAgentId = resolveSessionAgentId({
+    sessionKey,
+    config: cfg,
+  });
+  const personDir = resolveAgentPersonDir(cfg, sessionAgentId);
   const remoteEligibility = getRemoteSkillEligibility();
   const snapshotVersion = getSkillsSnapshotVersion(workspaceDir);
   ensureSkillsWatcher({ workspaceDir, config: cfg });
@@ -173,6 +180,7 @@ export async function ensureSkillSnapshot(params: {
       isFirstTurnInSession || !current.skillsSnapshot || shouldRefreshSnapshot
         ? buildWorkspaceSkillSnapshot(workspaceDir, {
             config: cfg,
+            personDir,
             skillFilter,
             eligibility: { remote: remoteEligibility },
             snapshotVersion,
@@ -197,6 +205,7 @@ export async function ensureSkillSnapshot(params: {
   const skillsSnapshot = shouldRefreshSnapshot
     ? buildWorkspaceSkillSnapshot(workspaceDir, {
         config: cfg,
+        personDir,
         skillFilter,
         eligibility: { remote: remoteEligibility },
         snapshotVersion,
@@ -206,6 +215,7 @@ export async function ensureSkillSnapshot(params: {
         ? undefined
         : buildWorkspaceSkillSnapshot(workspaceDir, {
             config: cfg,
+            personDir,
             skillFilter,
             eligibility: { remote: remoteEligibility },
             snapshotVersion,
